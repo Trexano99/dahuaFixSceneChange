@@ -696,6 +696,7 @@ class DahuaClient:
         LeftDetection: abandoned object detection
         TakenAwayDetection: missing object detection
         VideoAbnormalDetection: scene change event
+        SceneChange: scene change event (Alternative on some cameras)
         FaceDetection: face detect event
         AudioMutation: intensity change
         AudioAnomaly: input abnormal

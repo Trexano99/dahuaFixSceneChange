@@ -502,27 +502,36 @@ class DahuaDataUpdateCoordinator(DataUpdateCoordinator):
         translate_event_code will try to convert the event code to a less specific event code if the device doesn't have a listener for the more specific type
         Example event codes: VideoMotion, CrossLineDetection, BackKeyLight, DoorStatus
         """
+
+        #region DataExample
+            # For CrossLineDetection, the event data will look like this... and if there's a human detected then we'll use the SmartMotionHuman code instead
+            # {
+            #    "Code": "CrossLineDetection",
+            #    "Data": {
+            #        "Object": {
+            #            "ObjectType": "Human",
+            #        }
+            #    }
+            # }
+        #endregion
+
         code = event.get("Code", "")
-
-        # For CrossLineDetection, the event data will look like this... and if there's a human detected then we'll use the SmartMotionHuman code instead
-        # {
-        #    "Code": "CrossLineDetection",
-        #    "Data": {
-        #        "Object": {
-        #            "ObjectType": "Human",
-        #        }
-        #    }
-        # }
-        if code == "CrossLineDetection" or code == "CrossRegionDetection":
-            data = event.get("data", event.get("Data", {}))
-            is_human = data.get("Object", {}).get("ObjectType", "").lower() == "human"
-            if is_human and self._dahua_event_listeners.get(self.get_event_key(code)) is None:
-                return "SmartMotionHuman"
-
-        # Convert doorbell pressed related events to common event name, DoorbellPressed.
-        # VTO devices will use the event BackKeyLight and the Amcrest devices seem to use PhoneCallDetect
-        if code == "BackKeyLight" or code == "PhoneCallDetect":
-            code = "DoorbellPressed"
+        match code:
+                case "CrossLineDetection", "CrossRegionDetection":
+                    data = event.get("data", event.get("Data", {}))
+                    is_human = data.get("Object", {}).get("ObjectType", "").lower() == "human"
+                    if is_human and self._dahua_event_listeners.get(self.get_event_key(code)) is None:
+                        return "SmartMotionHuman"
+                    
+                # Convert doorbell pressed related events to common event name, DoorbellPressed.
+                # VTO devices will use the event BackKeyLight and the Amcrest devices seem to use PhoneCallDetect
+                case "BackKeyLight", "PhoneCallDetect":
+                    return "DoorbellPressed"
+                    
+                # Some cameras seems to have a SceneChange event wich in other cams seems to be VideoAbnormalDetection.
+                # See GitHub issue 456
+                case "SceneChange":
+                    return "VideoAbnormalDetection"
 
         return code
 
